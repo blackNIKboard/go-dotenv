@@ -4,9 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
-
-	"github.com/gijsbers/go-pcre"
 )
 
 func (e *Env) Write(writer io.Writer) error {
@@ -39,14 +38,15 @@ func (e *Env) Write(writer io.Writer) error {
 
 func (e *Env) Read(reader io.Reader) error {
 	var (
-		re = pcre.MustCompile(`[A-Z,_]+=((["'])(?:[^\2\\]|\\.)*?\2|\w+)`, 0)
+		re = regexp.MustCompile(
+			`[A-Z,_]+=(("(?:[^"\\]|\\.)*?"|\w+)|('(?:[^'\\]|\\.)*?'|\w+))`,
+		)
 	)
 
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		var (
-			entry   EnvEntry
-			matcher = re.MatcherString(scanner.Text(), 0)
+			entry EnvEntry
 		)
 
 		entry.Comment = func() *string {
@@ -59,11 +59,11 @@ func (e *Env) Read(reader io.Reader) error {
 			return nil
 		}()
 
-		if !matcher.Matches() {
+		if !re.MatchString(scanner.Text()) {
 			continue
 		}
 
-		rawEntry := strings.Split(matcher.GroupString(0), "=")
+		rawEntry := strings.Split(re.FindString(scanner.Text()), "=")
 
 		fmt.Println(rawEntry)
 
