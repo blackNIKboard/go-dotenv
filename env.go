@@ -1,50 +1,13 @@
-package main
+package godotenv
 
 import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/gijsbers/go-pcre"
-
-	"github.com/davecgh/go-spew/spew"
 )
-
-func main() {
-	fileIn, err := os.OpenFile("text.env", os.O_RDONLY|os.O_CREATE, 0644)
-	if err != nil {
-		panic(err)
-	}
-	defer fileIn.Close()
-
-	fileOut, err := os.OpenFile("text.out.env", os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		panic(err)
-	}
-	defer fileIn.Close()
-
-	env, err := Read(fileIn)
-	if err != nil {
-		panic(err)
-	}
-
-	err = env.Write(fileOut)
-	if err != nil {
-		panic(err)
-	}
-
-	spew.Dump(env)
-}
-
-type Env map[string]EnvEntry
-
-type EnvEntry struct {
-	Data    string
-	Comment *string
-	Quoted  bool
-}
 
 func (e *Env) Write(writer io.Writer) error {
 	for key, entry := range *e {
@@ -74,10 +37,9 @@ func (e *Env) Write(writer io.Writer) error {
 	return nil
 }
 
-func Read(reader io.Reader) (Env, error) {
+func (e *Env) Read(reader io.Reader) error {
 	var (
-		result = Env{}
-		re     = pcre.MustCompile(`[A-Z,_]+=((["'])(?:[^\2\\]|\\.)*?\2|\w+)`, 0)
+		re = pcre.MustCompile(`[A-Z,_]+=((["'])(?:[^\2\\]|\\.)*?\2|\w+)`, 0)
 	)
 
 	scanner := bufio.NewScanner(reader)
@@ -127,12 +89,12 @@ func Read(reader io.Reader) (Env, error) {
 			return true
 		}()
 
-		result[rawEntry[0]] = entry
+		(*e)[rawEntry[0]] = entry
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return result, nil
+	return nil
 }
