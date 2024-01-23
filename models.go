@@ -1,6 +1,9 @@
 package godotenv
 
-type Env map[string]EnvEntry
+type Env struct {
+	Data map[string]EnvEntry
+	Keys []string
+}
 
 type EnvEntry struct {
 	Data    string

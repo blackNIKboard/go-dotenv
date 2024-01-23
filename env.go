@@ -9,7 +9,9 @@ import (
 )
 
 func (e *Env) Write(writer io.Writer) error {
-	for key, entry := range *e {
+	for _, key := range e.Keys {
+		entry := e.Data[key]
+
 		if _, err := writer.Write(
 			[]byte(fmt.Sprintf("%s=%s\n",
 				key,
@@ -39,9 +41,11 @@ func (e *Env) Write(writer io.Writer) error {
 func (e *Env) Read(reader io.Reader) error {
 	var (
 		re = regexp.MustCompile(
-			`[A-Z,_]+=(("(?:[^"\\]|\\.)*?"|([^'"])+)|('(?:[^'\\]|\\.)*?'|([^'"])+))`,
+			`[A-Z0-9,_]+=(("(?:[^"\\]|\\.)*?"|([^'"])+)|('(?:[^'\\]|\\.)*?'|([^'"])+))`,
 		)
 	)
+
+	e.Data = map[string]EnvEntry{}
 
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
@@ -89,7 +93,8 @@ func (e *Env) Read(reader io.Reader) error {
 			return true
 		}()
 
-		(*e)[rawEntry[0]] = entry
+		(*e).Data[rawEntry[0]] = entry
+		(*e).Keys = append((*e).Keys, rawEntry[0])
 	}
 
 	if err := scanner.Err(); err != nil {

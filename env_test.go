@@ -2,34 +2,41 @@ package godotenv
 
 import (
 	"io"
+	"slices"
 	"strings"
 	"testing"
 )
 
 func isEqualEnv(t *testing.T, env1 *Env, env2 *Env) bool {
-	if len(*env1) != len(*env2) {
+	if len(env1.Keys) != len(env2.Keys) {
 		return false
 	}
 
-	for k, v := range *env1 {
-		debug := v.Comment == nil && (*env2)[k].Comment == nil
+	if !slices.Equal(env1.Keys, env2.Keys) {
+		return false
+	}
+
+	for _, k := range env1.Keys {
+		v := env1.Data[k]
+
+		debug := v.Comment == nil && (*env2).Data[k].Comment == nil
 		_ = debug
 
-		if !(v.Comment == nil && (*env2)[k].Comment == nil) &&
-			*v.Comment != *(*env2)[k].Comment {
-			t.Logf("comment mismatch: '%v' vs '%v'\n", *v.Comment, *(*env2)[k].Comment)
+		if !(v.Comment == nil && (*env2).Data[k].Comment == nil) &&
+			*v.Comment != *(*env2).Data[k].Comment {
+			t.Logf("comment mismatch: '%v' vs '%v'\n", *v.Comment, *(*env2).Data[k].Comment)
 
 			return false
 		}
 
-		if v.Data != (*env2)[k].Data {
-			t.Logf("data mismatch: '%v' vs '%v'\n", v.Data, (*env2)[k].Data)
+		if v.Data != (*env2).Data[k].Data {
+			t.Logf("data mismatch: '%v' vs '%v'\n", v.Data, (*env2).Data[k].Data)
 
 			return false
 		}
 
-		if v.Quoted != (*env2)[k].Quoted {
-			t.Logf("quoted mismatch: %v vs %v\n", v.Quoted, (*env2)[k].Quoted)
+		if v.Quoted != (*env2).Data[k].Quoted {
+			t.Logf("quoted mismatch: %v vs %v\n", v.Quoted, (*env2).Data[k].Quoted)
 
 			return false
 		}
@@ -57,11 +64,14 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_BOOL": {
-					Data:    "true",
-					Comment: nil,
-					Quoted:  false,
+				Data: map[string]EnvEntry{
+					"TEST_BOOL": {
+						Data:    "true",
+						Comment: nil,
+						Quoted:  false,
+					},
 				},
+				Keys: []string{"TEST_BOOL"},
 			},
 		},
 		{
@@ -72,11 +82,13 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_BOOL": {
+				Data: map[string]EnvEntry{"TEST_BOOL": {
 					Data:    "true",
 					Comment: nil,
 					Quoted:  false,
 				},
+				},
+				Keys: []string{"TEST_BOOL"},
 			},
 		},
 		{
@@ -87,11 +99,13 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data:    "qwerty",
-					Comment: nil,
-					Quoted:  false,
-				},
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    "qwerty",
+						Comment: nil,
+						Quoted:  false,
+					}},
+				Keys: []string{"TEST_STRING"},
 			},
 		},
 		{
@@ -102,11 +116,14 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data:    "qwerty",
-					Comment: nil,
-					Quoted:  true,
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    "qwerty",
+						Comment: nil,
+						Quoted:  true,
+					},
 				},
+				Keys: []string{"TEST_STRING"},
 			},
 		},
 		{
@@ -117,11 +134,14 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data:    "qwerty",
-					Comment: nil,
-					Quoted:  true,
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    "qwerty",
+						Comment: nil,
+						Quoted:  true,
+					},
 				},
+				Keys: []string{"TEST_STRING"},
 			},
 		},
 		{
@@ -132,11 +152,14 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data:    "qwerty   \"test\" ",
-					Comment: nil,
-					Quoted:  true,
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    "qwerty   \"test\" ",
+						Comment: nil,
+						Quoted:  true,
+					},
 				},
+				Keys: []string{"TEST_STRING"},
 			},
 		},
 		{
@@ -147,11 +170,14 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data:    "qwerty   'test' ",
-					Comment: nil,
-					Quoted:  true,
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    "qwerty   'test' ",
+						Comment: nil,
+						Quoted:  true,
+					},
 				},
+				Keys: []string{"TEST_STRING"},
 			},
 		},
 		{
@@ -162,11 +188,14 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data:    `qwerty   \"test\" `,
-					Comment: nil,
-					Quoted:  true,
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    `qwerty   \"test\" `,
+						Comment: nil,
+						Quoted:  true,
+					},
 				},
+				Keys: []string{"TEST_STRING"},
 			},
 		},
 		{
@@ -177,11 +206,14 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data:    `qwerty   \'test\' `,
-					Comment: nil,
-					Quoted:  true,
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    `qwerty   \'test\' `,
+						Comment: nil,
+						Quoted:  true,
+					},
 				},
+				Keys: []string{"TEST_STRING"},
 			},
 		},
 		{
@@ -192,14 +224,17 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data: `qwerty   \'test\' `,
-					Comment: func() *string {
-						comment := " 1342 commented "
-						return &comment
-					}(),
-					Quoted: true,
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data: `qwerty   \'test\' `,
+						Comment: func() *string {
+							comment := " 1342 commented "
+							return &comment
+						}(),
+						Quoted: true,
+					},
 				},
+				Keys: []string{"TEST_STRING"},
 			},
 		},
 		{
@@ -210,14 +245,17 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data: `qwerty   \'test\' `,
-					Comment: func() *string {
-						comment := " 1342 comm####ented # comment 2   "
-						return &comment
-					}(),
-					Quoted: true,
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data: `qwerty   \'test\' `,
+						Comment: func() *string {
+							comment := " 1342 comm####ented # comment 2   "
+							return &comment
+						}(),
+						Quoted: true,
+					},
 				},
+				Keys: []string{"TEST_STRING"},
 			},
 		},
 		{
@@ -228,11 +266,14 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data:    `/data/test/`,
-					Comment: nil,
-					Quoted:  true,
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    `/data/test/`,
+						Comment: nil,
+						Quoted:  true,
+					},
 				},
+				Keys: []string{"TEST_STRING"},
 			},
 		},
 		{
@@ -243,11 +284,62 @@ func TestEnv_Read(t *testing.T) {
 			},
 			false,
 			&Env{
-				"TEST_STRING": {
-					Data:    `/data/test/`,
-					Comment: nil,
-					Quoted:  false,
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    `/data/test/`,
+						Comment: nil,
+						Quoted:  false,
+					},
 				},
+				Keys: []string{"TEST_STRING"},
+			},
+		},
+		{
+			"Preserve order 1",
+			&Env{},
+			args{
+				strings.NewReader(`TEST_STRING1=test
+TEST_STRING=/data/test/`),
+			},
+			false,
+			&Env{
+				Data: map[string]EnvEntry{
+					"TEST_STRING1": {
+						Data:    `test`,
+						Comment: nil,
+						Quoted:  false,
+					},
+					"TEST_STRING": {
+						Data:    `/data/test/`,
+						Comment: nil,
+						Quoted:  false,
+					},
+				},
+				Keys: []string{"TEST_STRING1", "TEST_STRING"},
+			},
+		},
+		{
+			"Preserve order 2",
+			&Env{},
+			args{
+				strings.NewReader(`TEST_STRING=/data/test/
+TEST_STRING1=test`),
+			},
+			false,
+			&Env{
+				Data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    `/data/test/`,
+						Comment: nil,
+						Quoted:  false,
+					},
+					"TEST_STRING1": {
+						Data:    `test`,
+						Comment: nil,
+						Quoted:  false,
+					},
+				},
+				Keys: []string{"TEST_STRING", "TEST_STRING1"},
 			},
 		},
 	}
