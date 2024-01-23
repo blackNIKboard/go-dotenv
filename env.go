@@ -8,9 +8,18 @@ import (
 	"strings"
 )
 
+var (
+	ErrNotFound        = fmt.Errorf("key not found in env")
+	ErrKeyNotMatched   = fmt.Errorf("key do not match the regexp")
+	ErrValueNotMatched = fmt.Errorf("value do not match the regexp")
+)
+
+var regexKey = `[A-Z0-9,_]+`
+var regexValue = `(("(?:[^"\\]|\\.)*?"|([^'"])+)|('(?:[^'\\]|\\.)*?'|([^'"])+))`
+
 func (e *Env) Write(writer io.Writer) error {
-	for _, key := range e.Keys {
-		entry := e.Data[key]
+	for _, key := range e.keys {
+		entry := e.data[key]
 
 		if _, err := writer.Write(
 			[]byte(fmt.Sprintf("%s=%s\n",
@@ -41,11 +50,11 @@ func (e *Env) Write(writer io.Writer) error {
 func (e *Env) Read(reader io.Reader) error {
 	var (
 		re = regexp.MustCompile(
-			`[A-Z0-9,_]+=(("(?:[^"\\]|\\.)*?"|([^'"])+)|('(?:[^'\\]|\\.)*?'|([^'"])+))`,
+			regexKey + "=" + regexValue,
 		)
 	)
 
-	e.Data = map[string]EnvEntry{}
+	e.data = map[string]EnvEntry{}
 
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
@@ -93,12 +102,69 @@ func (e *Env) Read(reader io.Reader) error {
 			return true
 		}()
 
-		(*e).Data[rawEntry[0]] = entry
-		(*e).Keys = append((*e).Keys, rawEntry[0])
+		(*e).data[rawEntry[0]] = entry
+		(*e).keys = append((*e).keys, rawEntry[0])
 	}
 
 	if err := scanner.Err(); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (e *Env) Add(key, value string, quoted bool, comment *string) error {
+	reKey := regexp.MustCompile(regexKey)
+	reValue := regexp.MustCompile(regexValue)
+
+	if !reKey.MatchString(key) {
+		return ErrKeyNotMatched
+	}
+
+	if !reValue.MatchString(value) {
+		return ErrValueNotMatched
+	}
+
+	if e.data == nil {
+		e.data = map[string]EnvEntry{}
+	}
+
+	e.data[key] = EnvEntry{
+		Data:    value,
+		Quoted:  quoted,
+		Comment: comment,
+	}
+
+	e.keys = append(e.keys, key)
+
+	return nil
+}
+
+func (e *Env) Get(key string) (string, error) {
+	if e.data == nil {
+		return "", ErrNotFound
+	}
+
+	value, ok := e.data[key]
+	if !ok {
+		return "", ErrNotFound
+	}
+
+	return value.Data, nil
+}
+
+func (e *Env) Delete(key string) error {
+	_, err := e.Get(key)
+	if err != nil {
+		return err
+	}
+
+	delete(e.data, key)
+
+	for i, v := range e.keys {
+		if v == key {
+			e.keys = append(e.keys[:i], e.keys[i+1:]...)
+		}
 	}
 
 	return nil
