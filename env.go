@@ -39,7 +39,7 @@ func (e *Env) Write(writer io.Writer) error {
 func (e *Env) Read(reader io.Reader) error {
 	var (
 		re = regexp.MustCompile(
-			`[A-Z,_]+=(("(?:[^"\\]|\\.)*?"|\w+)|('(?:[^'\\]|\\.)*?'|\w+))`,
+			`[A-Z,_]+=(("(?:[^"\\]|\\.)*?"|([^'"])+)|('(?:[^'\\]|\\.)*?'|([^'"])+))`,
 		)
 	)
 

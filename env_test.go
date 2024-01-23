@@ -220,6 +220,36 @@ func TestEnv_Read(t *testing.T) {
 				},
 			},
 		},
+		{
+			"Single string with path data quoted",
+			&Env{},
+			args{
+				strings.NewReader(`TEST_STRING='/data/test/'`),
+			},
+			false,
+			&Env{
+				"TEST_STRING": {
+					Data:    `/data/test/`,
+					Comment: nil,
+					Quoted:  true,
+				},
+			},
+		},
+		{
+			"Single string with path data unquoted",
+			&Env{},
+			args{
+				strings.NewReader(`TEST_STRING=/data/test/`),
+			},
+			false,
+			&Env{
+				"TEST_STRING": {
+					Data:    `/data/test/`,
+					Comment: nil,
+					Quoted:  false,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
