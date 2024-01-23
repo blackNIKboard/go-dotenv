@@ -129,13 +129,17 @@ func (e *Env) Add(key, value string, quoted bool, comment *string) error {
 		e.data = map[string]EnvEntry{}
 	}
 
+	_, ok := e.data[key]
+
 	e.data[key] = EnvEntry{
 		Data:    value,
 		Quoted:  quoted,
 		Comment: comment,
 	}
 
-	e.keys = append(e.keys, key)
+	if !ok {
+		e.keys = append(e.keys, key)
+	}
 
 	return nil
 }

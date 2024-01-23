@@ -395,6 +395,36 @@ func TestEnv_Add(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Modify existing string in Env",
+			env: &Env{
+				data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    "test",
+						Quoted:  false,
+						Comment: nil,
+					},
+				},
+				keys: []string{"TEST_STRING"},
+			},
+			args: args{
+				key:     "TEST_STRING",
+				value:   "test1",
+				quoted:  false,
+				comment: nil,
+			},
+			want: &Env{
+				data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    "test1",
+						Quoted:  false,
+						Comment: nil,
+					},
+				},
+				keys: []string{"TEST_STRING"},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
