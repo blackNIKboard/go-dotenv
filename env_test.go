@@ -2,6 +2,7 @@ package godotenv
 
 import (
 	"io"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -572,6 +573,58 @@ func TestEnv_Delete(t *testing.T) {
 
 			if !isEqualEnv(t, e, tt.want) {
 				t.Errorf("Environments are not equal: want %v; got %v", *tt.want, *e)
+			}
+		})
+	}
+}
+
+func TestEnv_GetAll(t *testing.T) {
+	tests := []struct {
+		name    string
+		env     *Env
+		want    map[string]string
+		wantErr bool
+	}{
+		{
+			name:    "Get from empty env",
+			env:     &Env{},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Get all 1",
+			env: &Env{
+				data: map[string]EnvEntry{
+					"TEST_STRING": {
+						Data:    `/data/test/`,
+						Comment: nil,
+						Quoted:  false,
+					},
+					"TEST_STRING1": {
+						Data:    `test`,
+						Comment: nil,
+						Quoted:  false,
+					},
+				},
+				keys: []string{"TEST_STRING", "TEST_STRING1"},
+			},
+			want: map[string]string{
+				"TEST_STRING":  "/data/test/",
+				"TEST_STRING1": "test",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := tt.env
+			got, err := e.GetAll()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Env.GetAll() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Env.GetAll() = %v, want %v", got, tt.want)
 			}
 		})
 	}

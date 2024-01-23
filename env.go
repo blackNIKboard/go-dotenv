@@ -173,3 +173,16 @@ func (e *Env) Delete(key string) error {
 
 	return nil
 }
+
+func (e *Env) GetAll() (map[string]string, error) {
+	if e.data == nil {
+		return nil, ErrNotFound
+	}
+
+	result := map[string]string{}
+	for k, v := range e.data {
+		result[k] = v.Data
+	}
+
+	return result, nil
+}
